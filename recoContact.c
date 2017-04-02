@@ -16,7 +16,7 @@ struct UDPGrantInfo UGI;
 int grantsocket,retimes=0;
 int RecoGrant(int[] args){
 
-	grantsocket= socket(AF_INET, SOCK_DGRAM, 0);
+	grantsocket= socket(AF_INET, SOCK_DGRAM, 0);//申请一个udp网络套接字
 	if (grantsocket != -1) {
         printf("Create a socket with fd: %d\n", grantsocket);
     } else {
@@ -24,25 +24,27 @@ int RecoGrant(int[] args){
         exit(EXIT_FAILURE);
     }
 
-    struct sockaddr_in localAddr;
-    localAddr.sin_family = AF_INET;
-    localAddr.sin_port = htons(grantLocalPort);
-    localAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    struct sockaddr_in localAddr;//声明地址
+    localAddr.sin_family = AF_INET;//ipv4
+    localAddr.sin_port = htons(grantLocalPort);//绑定本地端口
+    localAddr.sin_addr.s_addr = htonl(INADDR_ANY);//本地地址绑定
     memset(localAddr.sin_zero, '\0', sizeof localAddr.sin_zero);
      if (bind(grantsocket, (const struct sockaddr *) &localAddr, sizeof localAddr) == 0) {
-        printf("Bind socket to 127.0.0.1:12346\n");
+        printf("Bind socket to 48899\n");
     } else {
         fprintf(stderr, "Fail to bind the socket: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
-	SIGNAL(ALARM,Grant);	
-	UGI.port=grantLocalPort;
+	SIGNAL(ALARM,Grant);	//闹钟警报
+	
+
+	UGI.port=grantLocalPort;//
     UGI.addr.sin_family = AF_INET;
     UGI.addr.sin_port = htons(grantDstPort);
     UGI.addr.sin_addr.s_addr = htonl(UDPGrantAddress);
     memset(UGI.addr.sin_zero, '\0', sizeof UGI.addr.sin_zero);
     //此处需要计算得到密码，与密码之后的结束值，即之前的340
-
+	Grant();
     char buf[512];
     struct sockaddr_in client_addr;
     socklen_t client_addrlen;
@@ -55,10 +57,17 @@ int RecoGrant(int[] args){
 	    if(recv_size==25){
 	    	time++;
 	    }
-	    if(time>=3)return 0;
-	    if(retimes>=10) return -1;
+	    if(time>=3){
+	    	ALARM(0);
+			close(grantsocket);
+	    	return 0;
+	    }
+	    if(retimes>=10){ 
+	    	ALARM(0);
+			close(grantsocket);
+	    	return -1;
+		}	
 	}
-	ALARM(0);
 }
 
 void Grant(){
